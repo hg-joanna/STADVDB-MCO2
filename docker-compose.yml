@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  # Pair 1: Transactional App (OLTP)
+
+  app_server:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    depends_on:
+      - primary_db
+    environment:
+      - DATABASE_URL=postgres://postgres:yourpassword@primary_db:5432/flight_booking
+    volumes:
+      - ./backend:/app
+
+  primary_db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: flight_booking
+    ports:
+      - "5432:5432"
+    volumes:
+      - primary_db_data:/var/lib/postgresql/data
+
+
+  # Pair 2: Analytics & Replication 
+  # hot_backup_db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: yourpassword
+  #     POSTGRES_DB: flight_booking_backup
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - hot_backup_data:/var/lib/postgresql/data
+  #   depends_on:
+  #     - primary_db
+  #   # Physical replication setup will go here
+
+  # reports_db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: yourpassword
+  #     POSTGRES_DB: flight_booking_reports
+  #   ports:
+  #     - "5434:5432"
+  #   volumes:
+  #     - reports_db_data:/var/lib/postgresql/data
+  #   depends_on:
+  #     - primary_db
+  #   # Logical replication & reporting queries will go here
+
+volumes:
+  primary_db_data:
+  # hot_backup_data:
+  # reports_db_data:
