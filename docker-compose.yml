@@ -1,61 +1,143 @@
 version: "3.9"
 
 services:
-  # Pair 1: Transactional App (OLTP)
-
+  # ===========================================
+  # APPLICATION SERVER (OLTP)
+  # ===========================================
   app_server:
-    build: ./backend
+    build: .
+    container_name: flight_booking_app
     ports:
       - "4000:4000"
     depends_on:
-      - primary_db
+      primary_db:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgres://postgres:yourpassword@primary_db:5432/flight_booking
+      - POSTGRES_USER=postgres
+      - DATABASE_HOST=primary_db
+      - POSTGRES_DB=flight_booking
+      - POSTGRES_PASSWORD=yourpassword
+      - DATABASE_PORT=5432
     volumes:
-      - ./backend:/app
+      - .:/app
+      - /app/node_modules
+    networks:
+      - flight_booking_network
 
+  # ===========================================
+  # PRIMARY DATABASE (OLTP - Master)
+  # ===========================================
   primary_db:
     image: postgres:16
+    container_name: primary_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: yourpassword
       POSTGRES_DB: flight_booking
+      POSTGRES_INITDB_ARGS: "-E UTF8"
     ports:
       - "5432:5432"
     volumes:
       - primary_db_data:/var/lib/postgresql/data
+      - wal_archive:/var/lib/postgresql/wal_archive
+      - ./docker/primary-db:/docker-entrypoint-initdb.d
+      - ./db_scripts/flights_oltp_schema.sql:/docker-entrypoint-initdb.d/flights_oltp_schema.sql:ro
+      - ./db_scripts/db_data.sql:/docker-entrypoint-initdb.d/db_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flight_booking_network
 
+  # ===========================================
+  # HOT BACKUP DATABASE (Physical Replication)
+  # ===========================================
+  hot_backup_db:
+    image: postgres:16
+    container_name: hot_backup_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: flight_booking
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - hot_backup_data:/var/lib/postgresql/data
+      - wal_archive:/var/lib/postgresql/wal_archive:ro
+      - ./docker/hot-backup-db:/docker-entrypoint-initdb.d
+    depends_on:
+      primary_db:
+        condition: service_healthy
+    command: >
+      bash -c "
+      if [ ! -f /var/lib/postgresql/data/pgdata/PG_VERSION ]; then
+        echo 'First time setup - creating base backup...'
+        until pg_isready -h primary_db -U postgres; do sleep 2; done
+        rm -rf /var/lib/postgresql/data/pgdata/*
+        PGPASSWORD=replicator_password pg_basebackup -h primary_db -D /var/lib/postgresql/data/pgdata -U replicator -Fp -Xs -P -R
+        cat >> /var/lib/postgresql/data/pgdata/postgresql.conf <<EOF
+      hot_standby = on
+      primary_conninfo = 'host=primary_db port=5432 user=replicator password=replicator_password application_name=hot_backup'
+      primary_slot_name = 'hot_backup_slot'
+      restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'
+      EOF
+        touch /var/lib/postgresql/data/pgdata/standby.signal
+      fi
+      docker-entrypoint.sh postgres
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flight_booking_network
 
-  # Pair 2: Analytics & Replication 
-  # hot_backup_db:
-  #   image: postgres:16
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: yourpassword
-  #     POSTGRES_DB: flight_booking_backup
-  #   ports:
-  #     - "5433:5432"
-  #   volumes:
-  #     - hot_backup_data:/var/lib/postgresql/data
-  #   depends_on:
-  #     - primary_db
-  #   # Physical replication setup will go here
-
-  # reports_db:
-  #   image: postgres:16
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: yourpassword
-  #     POSTGRES_DB: flight_booking_reports
-  #   ports:
-  #     - "5434:5432"
-  #   volumes:
-  #     - reports_db_data:/var/lib/postgresql/data
-  #   depends_on:
-  #     - primary_db
-  #   # Logical replication & reporting queries will go here
+  # ===========================================
+  # REPORTS DATABASE (Logical Replication)
+  # ===========================================
+  reports_db:
+    image: postgres:16
+    container_name: reports_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: flight_booking_reports
+    ports:
+      - "5434:5432"
+    volumes:
+      - reports_db_data:/var/lib/postgresql/data
+      - ./docker/reports-db:/docker-entrypoint-initdb.d
+      - ./db_scripts/flights_oltp_schema.sql:/docker-entrypoint-initdb.d/flights_oltp_schema.sql:ro
+      - ./warehouse/ddl_warehouse_schema.sql:/docker-entrypoint-initdb.d/ddl_warehouse_schema.sql:ro
+      - ./warehouse/etl_dimensions.sql:/docker-entrypoint-initdb.d/etl_dimensions.sql:ro
+      - ./warehouse/etl_facts.sql:/docker-entrypoint-initdb.d/etl_facts.sql:ro
+      - ./warehouse/etl_master_pipeline.sql:/docker-entrypoint-initdb.d/etl_master_pipeline.sql:ro
+    depends_on:
+      primary_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flight_booking_network
 
 volumes:
   primary_db_data:
-  # hot_backup_data:
-  # reports_db_data:
+    driver: local
+  hot_backup_data:
+    driver: local
+  reports_db_data:
+    driver: local
+  wal_archive:
+    driver: local
+
+networks:
+  flight_booking_network:
+    driver: bridge
