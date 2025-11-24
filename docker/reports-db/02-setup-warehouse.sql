@@ -15,10 +15,37 @@ CREATE SUBSCRIPTION reports_subscription
     WITH (copy_data = true, create_slot = false, slot_name = 'reports_slot');
 
 \echo 'Logical replication subscription created.'
-\echo 'Waiting a moment for initial data sync...'
+\echo 'Waiting for initial data sync...'
 
--- Wait for initial sync (in production, you'd monitor this)
-SELECT pg_sleep(5);
+-- Wait for initial sync by checking subscription state
+DO $$
+DECLARE
+    v_wait_count INT := 0;
+    v_sub_state TEXT;
+BEGIN
+    LOOP
+        SELECT COALESCE(srsubstate, 'unknown')
+        INTO v_sub_state
+        FROM pg_stat_subscription
+        WHERE subname = 'reports_subscription';
+        
+        -- If subscription is ready or streaming, we're good
+        IF v_sub_state IN ('ready', 'streaming') THEN
+            RAISE NOTICE 'Subscription is ready (state: %)', v_sub_state;
+            EXIT;
+        END IF;
+        
+        -- Wait up to 60 seconds
+        IF v_wait_count >= 12 THEN
+            RAISE NOTICE 'Subscription state: %. Proceeding anyway...', v_sub_state;
+            EXIT;
+        END IF;
+        
+        RAISE NOTICE 'Waiting for subscription... (state: %, attempt: %/12)', v_sub_state, v_wait_count + 1;
+        PERFORM pg_sleep(5);
+        v_wait_count := v_wait_count + 1;
+    END LOOP;
+END $$;
 
 \echo 'Creating warehouse schema for analytics...'
 

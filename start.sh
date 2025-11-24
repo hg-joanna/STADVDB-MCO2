@@ -36,12 +36,21 @@ max_wait=180  # 3 minutes
 elapsed=0
 
 while [ $elapsed -lt $max_wait ]; do
-    primary_healthy=$(docker compose ps primary_db | grep -c "healthy" || echo "0")
-    backup_healthy=$(docker compose ps hot_backup_db | grep -c "healthy" || echo "0")
-    reports_healthy=$(docker compose ps reports_db | grep -c "healthy" || echo "0")
-    app_running=$(docker compose ps app_server | grep -c "running" || echo "0")
+    # Check health status more reliably
+    primary_healthy=$(docker compose ps primary_db --format json 2>/dev/null | grep -o '"Health":"healthy"' | wc -l)
+    backup_healthy=$(docker compose ps hot_backup_db --format json 2>/dev/null | grep -o '"Health":"healthy"' | wc -l)
+    reports_healthy=$(docker compose ps reports_db --format json 2>/dev/null | grep -o '"Health":"healthy"' | wc -l)
+    app_running=$(docker compose ps app_server --format json 2>/dev/null | grep -o '"State":"running"' | wc -l)
     
-    if [ "$primary_healthy" -eq "1" ] && [ "$backup_healthy" -eq "1" ] && [ "$reports_healthy" -eq "1" ] && [ "$app_running" -eq "1" ]; then
+    # Fallback to simpler check if JSON format not available
+    if [ -z "$primary_healthy" ] || [ "$primary_healthy" = "0" ]; then
+        primary_healthy=$(docker compose ps primary_db 2>/dev/null | grep -c "healthy" || echo "0")
+        backup_healthy=$(docker compose ps hot_backup_db 2>/dev/null | grep -c "healthy" || echo "0")
+        reports_healthy=$(docker compose ps reports_db 2>/dev/null | grep -c "healthy" || echo "0")
+        app_running=$(docker compose ps app_server 2>/dev/null | grep -c "running" || echo "0")
+    fi
+    
+    if [ "$primary_healthy" -ge "1" ] && [ "$backup_healthy" -ge "1" ] && [ "$reports_healthy" -ge "1" ] && [ "$app_running" -ge "1" ]; then
         echo -e "${GREEN}All services are healthy!${NC}"
         break
     fi

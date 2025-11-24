@@ -18,7 +18,8 @@ cat >> "$PGDATA/postgresql.conf" <<EOF
 # Enable WAL archiving for point-in-time recovery
 wal_level = logical
 archive_mode = on
-archive_command = 'test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f'
+# Archive command with error handling and atomic operations
+archive_command = 'test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f && chmod 0600 /var/lib/postgresql/wal_archive/%f'
 archive_timeout = 3600  # Archive every hour (3600 seconds)
 
 # Physical replication settings

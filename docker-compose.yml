@@ -1,3 +1,10 @@
+# ========================================================================
+# Flight Booking System - Docker Compose Configuration
+# ========================================================================
+# WARNING: This configuration uses hardcoded passwords for development only.
+# For production, use Docker secrets or environment variables from .env file.
+# ========================================================================
+
 services:
   # ===========================================
   # APPLICATION SERVER (OLTP)
