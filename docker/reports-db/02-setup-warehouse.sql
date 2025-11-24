@@ -35,7 +35,8 @@ SELECT pg_sleep(5);
 \echo 'Running initial ETL to populate warehouse...'
 
 -- Run initial ETL to populate the warehouse
-CALL run_full_etl();
+-- The ETL master pipeline is a DO block that executes automatically
+\i /docker-entrypoint-initdb.d/etl_master_pipeline.sql
 
 \echo 'Reports database initialization complete!'
 \echo 'OLTP tables are being replicated from primary.'
