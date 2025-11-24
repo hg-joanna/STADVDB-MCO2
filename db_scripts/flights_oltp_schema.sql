@@ -6,6 +6,9 @@ CREATE TABLE flights (
     destination TEXT NOT NULL,
     departure_time TIMESTAMPTZ NOT NULL,
     arrival_time TIMESTAMPTZ NOT NULL
+
+    CONSTRAINT chk_flight_limit CHECK (flight_id <= 5),
+    CONSTRAINT chk_arrival_after_departure CHECK (arrival_time > departure_time)
 );
 
 CREATE INDEX idx_flights_route ON flights(origin, destination);
@@ -38,10 +41,10 @@ CREATE TABLE customers (
 -- Bookings
 CREATE TABLE bookings (
     booking_id SERIAL PRIMARY KEY,
-    booking_reference UUID NOT NULL DEFAULT gen_random_uuid(),
-    customer_id INT REFERENCES customers(customer_id),
-    flight_id INT NOT NULL REFERENCES flights(flight_id),
-    total_price NUMERIC(10,2) NOT NULL,
+    booking_reference UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    customer_id INT NOT NULL REFERENCES customers(customer_id) ON DELETE RESTRICT,
+    flight_id INT NOT NULL REFERENCES flights(flight_id) ON DELETE RESTRICT,
+    total_price NUMERIC(10,2) NOT NULL CHECK (total_price > 0),
     booked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED'
         CHECK (status IN ('CONFIRMED', 'CANCELLED'))
@@ -55,8 +58,8 @@ CREATE INDEX idx_bookings_booked_at ON bookings(booked_at);
 CREATE TABLE booking_items (
     booking_item_id SERIAL PRIMARY KEY,
     booking_id INT NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
-    seat_id INT NOT NULL REFERENCES seats(seat_id),
-    price NUMERIC(10,2) NOT NULL,
+    seat_id INT NOT NULL REFERENCES seats(seat_id) ON DELETE RESTRICT,
+    price NUMERIC(10,2) NOT NULL CHECK (price > 0),
 
     CONSTRAINT unique_seat_booking UNIQUE (booking_id, seat_id)
 );
