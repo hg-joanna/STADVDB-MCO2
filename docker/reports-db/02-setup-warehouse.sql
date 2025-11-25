@@ -18,30 +18,32 @@ CREATE SUBSCRIPTION reports_subscription
 \echo 'Waiting for initial data sync...'
 
 -- Wait for initial sync by checking subscription state
+-- Note: In PostgreSQL 16, pg_stat_subscription_stats has subid and stat columns
+-- We check if the subscription is receiving data by looking at the PID
 DO $$
 DECLARE
     v_wait_count INT := 0;
-    v_sub_state TEXT;
+    v_sub_pid INT;
 BEGIN
     LOOP
-        SELECT COALESCE(srsubstate, 'unknown')
-        INTO v_sub_state
+        -- Check if subscription worker is running by looking for non-null pid
+        SELECT pid INTO v_sub_pid
         FROM pg_stat_subscription
         WHERE subname = 'reports_subscription';
         
-        -- If subscription is ready or streaming, we're good
-        IF v_sub_state IN ('ready', 'streaming') THEN
-            RAISE NOTICE 'Subscription is ready (state: %)', v_sub_state;
+        -- If subscription worker has a PID, it's active
+        IF v_sub_pid IS NOT NULL THEN
+            RAISE NOTICE 'Subscription is active (worker PID: %)', v_sub_pid;
             EXIT;
         END IF;
         
         -- Wait up to 60 seconds
         IF v_wait_count >= 12 THEN
-            RAISE NOTICE 'Subscription state: %. Proceeding anyway...', v_sub_state;
+            RAISE NOTICE 'Subscription may not be fully active yet. Proceeding anyway...';
             EXIT;
         END IF;
         
-        RAISE NOTICE 'Waiting for subscription... (state: %, attempt: %/12)', v_sub_state, v_wait_count + 1;
+        RAISE NOTICE 'Waiting for subscription worker... (attempt: %/12)', v_wait_count + 1;
         PERFORM pg_sleep(5);
         v_wait_count := v_wait_count + 1;
     END LOOP;
