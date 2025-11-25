@@ -2,32 +2,26 @@
 set -e
 
 # This script initializes the primary database with:
-# 1. OLTP schema
-# 2. Sample data
-# 3. Replication configuration
+# 1. Additional configuration for archiving and performance
+# 2. Host-based authentication for replication
 
 echo "Setting up primary database..."
 
-# Configure PostgreSQL for replication
+# Configure PostgreSQL for archiving and performance
+# Note: wal_level, max_wal_senders, max_replication_slots are set via command line
 cat >> "$PGDATA/postgresql.conf" <<EOF
 
 # ========================================
-# REPLICATION & WAL SETTINGS
+# ARCHIVING & PERFORMANCE SETTINGS
 # ========================================
 
 # Enable WAL archiving for point-in-time recovery
-wal_level = logical
 archive_mode = on
-# Archive command with error handling and atomic operations
 archive_command = 'test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f && chmod 0600 /var/lib/postgresql/wal_archive/%f'
 archive_timeout = 3600  # Archive every hour (3600 seconds)
 
-# Physical replication settings
-max_wal_senders = 10
-max_replication_slots = 10
+# Additional replication settings
 hot_standby = on
-
-# Logical replication settings
 max_logical_replication_workers = 4
 max_sync_workers_per_subscription = 2
 

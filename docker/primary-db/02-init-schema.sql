@@ -12,10 +12,10 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO replicator;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO replicator;
 
 -- Create OLTP schema
-\i /docker-entrypoint-initdb.d/flights_oltp_schema.sql
+\i /docker-entrypoint-initdb.d/z_flights_oltp_schema.sql
 
 -- Load sample data
-\i /docker-entrypoint-initdb.d/db_data.sql
+\i /docker-entrypoint-initdb.d/z_db_data.sql
 
 -- Create publication for logical replication to reports database
 CREATE PUBLICATION reports_publication FOR ALL TABLES;
