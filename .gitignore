@@ -36,6 +36,14 @@ coverage/
 *.tar
 .docker/
 
+# Docker volume mount placeholders (created by bind mounts)
+docker/primary-db/z_*.sql
+docker/reports-db/ddl_warehouse_schema.sql
+docker/reports-db/etl_dimensions.sql
+docker/reports-db/etl_facts.sql
+docker/reports-db/etl_master_pipeline.sql
+docker/reports-db/flights_oltp_schema.sql
+
 # Temporary files
 tmp/
 temp/
