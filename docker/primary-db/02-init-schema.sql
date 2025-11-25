@@ -23,9 +23,8 @@ CREATE PUBLICATION reports_publication FOR ALL TABLES;
 -- Create replication slot for hot backup (physical replication)
 SELECT pg_create_physical_replication_slot('hot_backup_slot');
 
--- Create replication slot for reports database (logical replication)
--- Note: This will be used by the reports_db subscription
-SELECT pg_create_logical_replication_slot('reports_slot', 'pgoutput');
+-- Note: Logical replication slot is created by 03-create-logical-slot.sql
+-- which includes safety checks for wal_level=logical
 
 -- Grant replication permissions
 GRANT USAGE ON SCHEMA public TO replicator;

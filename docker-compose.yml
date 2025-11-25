@@ -36,6 +36,8 @@ services:
   primary_db:
     image: postgres:16
     container_name: primary_db
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10", "-c", "wal_keep_size=64"]
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: yourpassword
