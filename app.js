@@ -1,5 +1,4 @@
-const bookingRoutes = require('./routes/bookingRoutes');
-const flightRoutes = require('./routes/flightRoutes');const express = require('express');
+const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 
