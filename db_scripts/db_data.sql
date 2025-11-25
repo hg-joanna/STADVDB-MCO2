@@ -12,7 +12,8 @@ VALUES
 ('FL007','Davao','Cebu','2025-12-02 12:00:00+08','2025-12-02 13:15:00+08'),
 ('FL008','Iloilo','Cebu','2025-12-02 14:00:00+08','2025-12-02 15:15:00+08'),
 ('FL009','Manila','Iloilo','2025-12-03 08:00:00+08','2025-12-03 09:30:00+08'),
-('FL010','Cebu','Davao','2025-12-03 10:00:00+08','2025-12-03 11:15:00+08');
+('FL010','Cebu','Davao','2025-12-03 10:00:00+08','2025-12-03 11:15:00+08')
+ON CONFLICT DO NOTHING;
 
 -- Seats
 -- Seat pattern: 1A–5B, 8 ECONOMY + 2 BUSINESS per flight
@@ -66,7 +67,8 @@ VALUES
 -- Flight 10
 (10,'1A','ECONOMY',TRUE),(10,'1B','ECONOMY',TRUE),(10,'2A','ECONOMY',TRUE),(10,'2B','ECONOMY',TRUE),
 (10,'3A','ECONOMY',TRUE),(10,'3B','ECONOMY',TRUE),(10,'4A','ECONOMY',TRUE),(10,'4B','ECONOMY',TRUE),
-(10,'5A','BUSINESS',TRUE),(10,'5B','BUSINESS',TRUE);
+(10,'5A','BUSINESS',TRUE),(10,'5B','BUSINESS',TRUE)
+ON CONFLICT DO NOTHING;
 
 -- Customers (100)
 INSERT INTO customers (full_name, email, phone)
@@ -170,4 +172,5 @@ VALUES
 ('Customer97','customer97@example.com','09170000097'),
 ('Customer98','customer98@example.com','09170000098'),
 ('Customer99','customer99@example.com','09170000099'),
-('Customer100','customer100@example.com','09170000100');
+('Customer100','customer100@example.com','09170000100')
+ON CONFLICT DO NOTHING;
