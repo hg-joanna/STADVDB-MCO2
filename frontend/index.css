@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Make the background slightly grey to look cleaner */
+body {
+  @apply bg-slate-50 text-slate-900;
+}
