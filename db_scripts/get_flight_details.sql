@@ -12,4 +12,4 @@ SELECT
     f.departure_time,
     f.arrival_time
 FROM flights f
-WHERE f.flight_id = :flight_id;
+WHERE f.flight_id = $1;

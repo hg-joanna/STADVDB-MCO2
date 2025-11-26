@@ -26,6 +26,7 @@ services:
       - DATABASE_PORT=5432
     volumes:
       - .:/app
+      - /app/node_modules
     networks:
       - flight_booking_network
 
@@ -78,23 +79,22 @@ services:
     depends_on:
       primary_db:
         condition: service_healthy
-    command: >
-      bash -c "
-      if [ ! -f /var/lib/postgresql/data/pgdata/PG_VERSION ]; then
-        echo 'First time setup - creating base backup...'
-        until pg_isready -h primary_db -U postgres; do sleep 2; done
-        rm -rf /var/lib/postgresql/data/pgdata/*
-        PGPASSWORD=replicator_password pg_basebackup -h primary_db -D /var/lib/postgresql/data/pgdata -U replicator -Fp -Xs -P -R
-        cat >> /var/lib/postgresql/data/pgdata/postgresql.conf <<EOF
-      hot_standby = on
-      primary_conninfo = 'host=primary_db port=5432 user=replicator password=replicator_password application_name=hot_backup'
-      primary_slot_name = 'hot_backup_slot'
-      restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'
-      EOF
-        touch /var/lib/postgresql/data/pgdata/standby.signal
-      fi
-      docker-entrypoint.sh postgres
-      "
+    command:
+      - bash
+      - -c
+      - |
+        if [ ! -f /var/lib/postgresql/data/pgdata/PG_VERSION ]; then
+          echo 'First time setup - creating base backup...'
+          until pg_isready -h primary_db -U postgres; do sleep 2; done
+          rm -rf /var/lib/postgresql/data/pgdata/*
+          PGPASSWORD=replicator_password pg_basebackup -h primary_db -D /var/lib/postgresql/data/pgdata -U replicator -Fp -Xs -P -R
+          echo "hot_standby = on" >> /var/lib/postgresql/data/pgdata/postgresql.conf
+          echo "primary_conninfo = 'host=primary_db port=5432 user=replicator password=replicator_password application_name=hot_backup'" >> /var/lib/postgresql/data/pgdata/postgresql.conf
+          echo "primary_slot_name = 'hot_backup_slot'" >> /var/lib/postgresql/data/pgdata/postgresql.conf
+          echo "restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'" >> /var/lib/postgresql/data/pgdata/postgresql.conf
+          touch /var/lib/postgresql/data/pgdata/standby.signal
+        fi
+        exec docker-entrypoint.sh postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
