@@ -8,6 +8,6 @@ SELECT
     s.seat_number,
     s.seat_class
 FROM seats s
-WHERE s.flight_id = :flight_id
+WHERE s.flight_id = $1
   AND s.is_available = TRUE
 ORDER BY s.seat_number;

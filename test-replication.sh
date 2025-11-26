@@ -22,11 +22,11 @@ test_step() {
 }
 
 success() {
-    echo -e "${GREEN}[✓]${NC} $1"
+    echo -e "${GREEN}[âœ“]${NC} $1"
 }
 
 error() {
-    echo -e "${RED}[✗]${NC} $1"
+    echo -e "${RED}[âœ—]${NC} $1"
 }
 
 # Check if services are running
@@ -145,14 +145,14 @@ echo "Test Summary"
 echo "========================================="
 echo ""
 echo "Infrastructure Status:"
-echo "  - Primary Database: $(docker compose ps primary_db | grep -q 'running' && echo '✓ Running' || echo '✗ Not running')"
-echo "  - Hot Backup Database: $(docker compose ps hot_backup_db | grep -q 'running' && echo '✓ Running' || echo '✗ Not running')"
-echo "  - Reports Database: $(docker compose ps reports_db | grep -q 'running' && echo '✓ Running' || echo '✗ Not running')"
-echo "  - Application Server: $(docker compose ps app_server | grep -q 'running' && echo '✓ Running' || echo '✗ Not running')"
+echo "  - Primary Database: $(docker compose ps primary_db | grep -q 'running' && echo 'âœ“ Running' || echo 'âœ— Not running')"
+echo "  - Hot Backup Database: $(docker compose ps hot_backup_db | grep -q 'running' && echo 'âœ“ Running' || echo 'âœ— Not running')"
+echo "  - Reports Database: $(docker compose ps reports_db | grep -q 'running' && echo 'âœ“ Running' || echo 'âœ— Not running')"
+echo "  - Application Server: $(docker compose ps app_server | grep -q 'running' && echo 'âœ“ Running' || echo 'âœ— Not running')"
 echo ""
 echo "Replication Status:"
-echo "  - Physical Replication: $([ "$REPL_STATUS" -eq "1" ] && echo '✓ Active' || echo '✗ Inactive')"
-echo "  - Logical Replication: $([ "$SUB_STATUS" -eq "1" ] && echo '✓ Active' || echo '✗ Inactive')"
+echo "  - Physical Replication: $([ "$REPL_STATUS" -eq "1" ] && echo 'âœ“ Active' || echo 'âœ— Inactive')"
+echo "  - Logical Replication: $([ "$SUB_STATUS" -eq "1" ] && echo 'âœ“ Active' || echo 'âœ— Inactive')"
 echo ""
 echo "For detailed logs, run: docker compose logs -f [service_name]"
 echo "========================================="
