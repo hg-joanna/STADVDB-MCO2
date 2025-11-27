@@ -30,9 +30,12 @@ insert_booking AS (
 )
 
 -- 3. Insert booking items using the newly created booking_id and the locked seats
-INSERT INTO booking_items (booking_id, seat_id)
-SELECT ib.booking_id, las.seat_id
-FROM insert_booking ib, locked_available_seats las; -- Note: ib is only present if the previous INSERT succeeded
+insert_items AS (
+    INSERT INTO booking_items (booking_id, seat_id)
+    SELECT ib.booking_id, las.seat_id
+    FROM insert_booking ib, locked_available_seats las
+    RETURNING seat_id
+) -- Note: ib is only present if the previous INSERT succeeded
 
 -- 4. Update seat availability (now simplified to use the list of successfully locked seats)
 UPDATE seats
