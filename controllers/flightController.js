@@ -39,7 +39,10 @@ exports.getAvailableSeats = async (req, res) => {
         s.seat_id,
         s.seat_number,
         s.seat_class,
-        s.price,
+        CASE 
+          WHEN s.seat_class = 'BUSINESS' THEN 10000
+          ELSE 5000
+        END as price,
         s.is_available
     FROM seats s
     WHERE s.flight_id = $1

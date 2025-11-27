@@ -13,6 +13,8 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       }
-    }
+    },
+    // Enable SPA fallback for client-side routing
+    historyApiFallback: true
   }
 })
