@@ -1,6 +1,7 @@
 -- Unified Single Seat Booking
 WITH locked_seat AS (
-    SELECT seat_id, price  -- <--- ADDED price here
+    SELECT seat_id, 
+           CASE WHEN seat_class = 'BUSINESS' THEN 10000 ELSE 5000 END as price
     FROM seats
     WHERE flight_id = $2 
       AND seat_number = $3 
@@ -14,8 +15,8 @@ insert_booking AS (
     RETURNING booking_id
 ),
 insert_item AS (
-    INSERT INTO booking_items (booking_id, seat_id, price) -- <--- ADDED price column
-    SELECT ib.booking_id, ls.seat_id, ls.price           -- <--- ADDED price value
+    INSERT INTO booking_items (booking_id, seat_id, price)
+    SELECT ib.booking_id, ls.seat_id, ls.price
     FROM insert_booking ib, locked_seat ls
 )
 UPDATE seats

@@ -1,6 +1,23 @@
 const db = require('../db/db');
+const reportsDb = require('../db/reportsDb');
 const fs = require('fs');
 const path = require('path');
+
+// Helper to trigger ETL refresh asynchronously
+const triggerETLRefresh = async () => {
+  try {
+    const etlPath = path.join(__dirname, '../warehouse/etl_master_pipeline.sql');
+    if (fs.existsSync(etlPath)) {
+      const etlScript = fs.readFileSync(etlPath, 'utf-8');
+      // Run in background, don't await
+      reportsDb.query(etlScript)
+        .then(() => console.log('✓ Warehouse ETL refresh completed'))
+        .catch(err => console.error('⚠ ETL refresh failed:', err.message));
+    }
+  } catch (err) {
+    console.error('⚠ ETL trigger error:', err.message);
+  }
+};
 
 // Helper to read SQL files strictly as ONE command
 const readSQL = (filename) => {
@@ -70,6 +87,10 @@ exports.singleSeatBooking = async (req, res) => {
 
     await client.query('COMMIT');
     console.log(">>> SUCCESS: Booking Confirmed.");
+    
+    // Trigger ETL refresh asynchronously (don't wait for it)
+    triggerETLRefresh();
+    
     res.status(200).json({ message: 'Booking successful' });
 
   } catch (err) {
@@ -103,6 +124,10 @@ exports.batchBooking = async (req, res) => {
     }
 
     await client.query('COMMIT');
+    
+    // Trigger ETL refresh asynchronously (don't wait for it)
+    triggerETLRefresh();
+    
     res.status(200).json({ message: 'Batch booking successful' });
 
   } catch (err) {
@@ -121,6 +146,10 @@ exports.cancelBooking = async (req, res) => {
     await client.query('BEGIN');
     await client.query(cancelBookingSQL, [parseInt(booking_id)]);
     await client.query('COMMIT');
+    
+    // Trigger ETL refresh asynchronously (don't wait for it)
+    triggerETLRefresh();
+    
     res.status(200).json({ message: 'Booking cancelled successfully' });
   } catch (err) {
     await client.query('ROLLBACK');

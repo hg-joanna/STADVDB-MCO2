@@ -40,6 +40,11 @@ router.get('/routes/top', reportsController.getTopRoutes);
 router.get('/dashboard/summary', reportsController.getDashboardSummary);
 
 // =====================================================
+// ETL MANAGEMENT
+// =====================================================
+router.post('/etl/refresh', reportsController.refreshWarehouse);
+
+// =====================================================
 // LEGACY/FRONTEND COMPATIBILITY
 // =====================================================
 router.get('/occupancy', reportsController.getFlightOccupancy);

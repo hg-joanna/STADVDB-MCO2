@@ -400,6 +400,44 @@ exports.getDashboardSummary = async (req, res) => {
 };
 
 // =====================================================
+// ETL MANAGEMENT
+// =====================================================
+
+// Trigger ETL pipeline to refresh warehouse data
+exports.refreshWarehouse = async (req, res) => {
+  try {
+    console.log('Triggering ETL pipeline refresh...');
+    
+    // Read and execute the ETL master pipeline
+    const fs = require('fs');
+    const path = require('path');
+    const etlPath = path.join(__dirname, '../warehouse/etl_master_pipeline.sql');
+    
+    if (!fs.existsSync(etlPath)) {
+      throw new Error('ETL pipeline script not found');
+    }
+    
+    const etlScript = fs.readFileSync(etlPath, 'utf-8');
+    
+    // Execute the ETL script
+    await reportsDb.query(etlScript);
+    
+    console.log('ETL pipeline refresh completed successfully');
+    res.json({ 
+      success: true, 
+      message: 'Warehouse refreshed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('ETL refresh error:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to refresh warehouse: ' + err.message 
+    });
+  }
+};
+
+// =====================================================
 // FLIGHT OCCUPANCY (Frontend Compatibility)
 // =====================================================
 

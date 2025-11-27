@@ -1,7 +1,8 @@
 -- Unified Batch Booking
 -- 1. Lock available seats
 WITH locked_available_seats AS (
-    SELECT seat_id, price -- <--- ADDED price here
+    SELECT seat_id, 
+           CASE WHEN seat_class = 'BUSINESS' THEN 10000 ELSE 5000 END as price
     FROM seats
     WHERE flight_id = $2
       AND seat_number = ANY($3) -- Matches array of seat numbers
