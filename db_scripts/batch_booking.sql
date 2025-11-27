@@ -1,7 +1,7 @@
 -- Unified Batch Booking
 -- 1. Lock available seats
 WITH locked_available_seats AS (
-    SELECT seat_id
+    SELECT seat_id, price -- <--- ADDED price here
     FROM seats
     WHERE flight_id = $2
       AND seat_number = ANY($3) -- Matches array of seat numbers
@@ -21,8 +21,8 @@ insert_booking AS (
 ),
 -- 3. Insert Booking Items
 insert_items AS (
-    INSERT INTO booking_items (booking_id, seat_id)
-    SELECT ib.booking_id, las.seat_id
+    INSERT INTO booking_items (booking_id, seat_id, price) -- <--- ADDED price column
+    SELECT ib.booking_id, las.seat_id, las.price         -- <--- ADDED price value
     FROM insert_booking ib, locked_available_seats las
     RETURNING seat_id
 )
