@@ -1,56 +1,40 @@
-
 -- Transactional logic for booking multiple seats
 
 -- Inputs:
---  customer_id   -ID of the customer making the booking
---  flight_id     - ID of the flight
---  seat_numbers  - Array of seat_numbers to book (e.g., ['1A','1B','2A'])
---  total_price  - Total price for all seats in the booking
+--  $1 - customer_id
+--  $2 - flight_id
+--  $3 - seat_numbers (Array)
+--  $4 - total_price
 
-BEGIN;
-
--- Lock all selected seats for this flight
-WITH locked_seats AS (
+-- 1. Create a CTE that locks all requested seats AND confirms they are available.
+WITH locked_available_seats AS (
     SELECT seat_id, seat_number, is_available
     FROM seats
-    WHERE flight_id = :flight_id
-      AND seat_number = ANY(:seat_numbers)
+    WHERE flight_id = $2
+      AND seat_number = ANY($3) -- Check all requested seat numbers
+      AND is_available = TRUE   -- Filter only available seats
     FOR UPDATE
+),
+
+-- 2. Insert the booking record. This CTE runs ONLY if the next step succeeds.
+insert_booking AS (
+    INSERT INTO bookings (customer_id, flight_id, total_price, status, booked_at)
+    -- Important: We check if the count of available seats matches the count requested
+    -- If it doesn't match, this subquery will return 0 rows and the INSERT will fail.
+    SELECT $1, $2, $4, 'CONFIRMED', NOW()
+    FROM (
+        SELECT COUNT(*) as count FROM locked_available_seats
+    ) sub
+    WHERE sub.count = array_length($3, 1)
+    RETURNING booking_id
 )
---  Ensure all seats are available
-SELECT *
-FROM locked_seats
-WHERE is_available = TRUE;
 
--- Raise exception if some seats are not available
-DO $$
-BEGIN
-  IF (SELECT COUNT(*) FROM locked_seats) <> array_length(:seat_numbers, 1) THEN
-    RAISE EXCEPTION 'One or more selected seats are already booked';
-  END IF;
-END$$;
-
--- Insert booking record
-INSERT INTO bookings (customer_id, flight_id, total_price, status, booked_at)
-VALUES (:customer_id, :flight_id, :total_price, 'CONFIRMED', NOW())
-RETURNING booking_id;
-
--- Insert booking items for all seats
+-- 3. Insert booking items using the newly created booking_id and the locked seats
 INSERT INTO booking_items (booking_id, seat_id)
-SELECT booking_id, seat_id
-FROM locked_seats;
+SELECT ib.booking_id, las.seat_id
+FROM insert_booking ib, locked_available_seats las; -- Note: ib is only present if the previous INSERT succeeded
 
--- Update seat availability for all seats
+-- 4. Update seat availability (now simplified to use the list of successfully locked seats)
 UPDATE seats
 SET is_available = FALSE
-WHERE flight_id = :flight_id
-  AND seat_number = ANY(:seat_numbers);
-
-COMMIT;
-
-
--- Notes:
--- 1. Use :seat_numbers as an array of seat_numbers from backend API.
--- 2. Entire operation is in one transaction to avoid race conditions.
--- 3. FOR UPDATE locks all selected seats so no other transaction can book them simultaneously.
--- 4. Optional check ensures all seats are available before committing.
+WHERE seat_id IN (SELECT seat_id FROM locked_available_seats);

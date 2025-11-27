@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS seats (
     flight_id INT NOT NULL REFERENCES flights(flight_id) ON DELETE CASCADE,
     seat_number VARCHAR(5) NOT NULL, -- e.g., 12A
     seat_class VARCHAR(20) NOT NULL CHECK (seat_class IN ('ECONOMY', 'BUSINESS')),
+    price NUMERIC(10,2) NOT NULL,
     is_available BOOLEAN NOT NULL DEFAULT TRUE,
 
     CONSTRAINT unique_seat_per_flight UNIQUE (flight_id, seat_number)

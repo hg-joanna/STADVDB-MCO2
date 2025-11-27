@@ -6,7 +6,7 @@
 SELECT 
     s.seat_id,
     s.seat_number,
-    s.seat_class,
+    s.seat_class
 FROM seats s
 WHERE s.flight_id = $1
   AND s.is_available = TRUE

@@ -2,18 +2,17 @@
 -- Transactional logic for booking a single seat
 
 -- Inputs: 
---  customer_id - ID of the customer making the booking
---  flight_id   -ID of the flight
---  seat_number -Seat to be booked (e.g., '1A')
---  total_price - Price of the booking
+--  $1 - customer_id - ID of the customer making the booking
+--  $2 - flight_id   -ID of the flight
+--  $3 - seat_number -Seat to be booked (e.g., '1A')
+--  $4 - total_price - Price of the booking
 
-BEGIN;
 
 -- Lock the seat row to prevent concurrent bookings
 WITH locked_seat AS (
     SELECT seat_id, is_available
     FROM seats
-    WHERE flight_id = :flight_id AND seat_number = :seat_number
+    WHERE flight_id = $2 AND seat_number = $3
     FOR UPDATE
 )
 
@@ -24,7 +23,7 @@ WHERE is_available = TRUE;
 
 -- Insert booking record
 INSERT INTO bookings (customer_id, flight_id, total_price, status, booked_at)
-VALUES (:customer_id, :flight_id, :total_price, 'CONFIRMED', NOW())
+VALUES ($1, $2, $4, 'CONFIRMED', NOW())
 RETURNING booking_id;
 
 -- Insert booking item (link seat to booking)
@@ -35,9 +34,8 @@ FROM locked_seat;
 -- Update seat availability
 UPDATE seats
 SET is_available = FALSE
-WHERE flight_id = :flight_id AND seat_number = :seat_number;
+WHERE flight_id = $2 AND seat_number = $3;
 
-COMMIT;
 
 
 -- Notes:
