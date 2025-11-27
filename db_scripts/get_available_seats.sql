@@ -6,7 +6,7 @@
 SELECT 
     s.seat_id,
     s.seat_number,
-    s.seat_class
+    s.seat_class,
     s.price,
     s.is_available
 FROM seats s
