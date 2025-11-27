@@ -1,10 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 
 const Availability = () => {
   const [flightId, setFlightId] = useState('');
+  const [flights, setFlights] = useState([]); // Store list of flights
   const [seats, setSeats] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // 1. Fetch all flights when the component mounts
+  useEffect(() => {
+    const fetchFlights = async () => {
+      try {
+        const response = await fetch('/api/flight');
+        if (response.ok) {
+          const data = await response.json();
+          setFlights(data);
+        } else {
+          console.error("Failed to fetch flight list");
+        }
+      } catch (error) {
+        console.error("Error connecting to server:", error);
+      }
+    };
+
+    fetchFlights();
+  }, []);
 
   const checkSeats = async () => {
     if (!flightId) return;
@@ -22,20 +42,34 @@ const Availability = () => {
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-end">
         <div className="flex-1 w-full">
-          <label className="block text-sm font-medium text-slate-600 mb-2">Check Flight Availability</label>
-          <input
-            type="number"
+          <label className="block text-sm font-medium text-slate-600 mb-2">Select Flight</label>
+          
+          {/* 2. Replaced Input with Select Dropdown */}
+          <select
             value={flightId}
             onChange={(e) => setFlightId(e.target.value)}
-            placeholder="Enter Flight ID (e.g. 1)"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          />
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+          >
+            <option value="">-- Choose a Flight --</option>
+            {flights.map((flight) => (
+              <option key={flight.flight_id} value={flight.flight_id}>
+                {/* Display Flight Number and Route */}
+                {flight.flight_number}: {flight.origin} ➝ {flight.destination}
+              </option>
+            ))}
+          </select>
+
         </div>
         <button 
           onClick={checkSeats}
-          className="bg-slate-800 text-white px-6 py-2 rounded-lg hover:bg-slate-900 transition flex items-center gap-2"
+          disabled={!flightId} // Disable button if no flight selected
+          className={`px-6 py-2 rounded-lg transition flex items-center gap-2 ${
+            !flightId 
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+              : 'bg-slate-800 text-white hover:bg-slate-900'
+          }`}
         >
-          <Search size={18} /> Check
+          <Search size={18} /> Check Availability
         </button>
       </div>
 
@@ -56,7 +90,6 @@ const Availability = () => {
                   <td className="px-6 py-4 font-medium text-slate-900">{s.seat_number}</td>
                   <td className="px-6 py-4 text-slate-600">{s.seat_class}</td>
                   <td className="px-6 py-4 font-medium text-blue-600">
-                    {/* Display Price if it exists */}
                     {s.price ? `₱${s.price}` : '-'}
                   </td>
                   <td className="px-6 py-4">
@@ -71,7 +104,9 @@ const Availability = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-slate-500">No seats found for this flight ID.</td>
+                  <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
+                    No seats found for this flight.
+                  </td>
                 </tr>
               )}
             </tbody>
