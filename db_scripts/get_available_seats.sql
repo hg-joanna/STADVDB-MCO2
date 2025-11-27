@@ -11,5 +11,5 @@ SELECT
     s.is_available
 FROM seats s
 WHERE s.flight_id = $1
-  AND s.is_available = TRUE
+
 ORDER BY s.seat_number;
