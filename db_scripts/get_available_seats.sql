@@ -12,4 +12,5 @@ SELECT
 FROM seats s
 WHERE s.flight_id = $1
 
-ORDER BY s.seat_number;
+-- Fix: Sort by length first (puts '1A' before '10A'), then by the text
+ORDER BY LENGTH(s.seat_number), s.seat_number;
