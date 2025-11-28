@@ -170,6 +170,30 @@ services:
     networks:
       - flight_booking_network
 
+  # ===========================================
+  # FAILOVER MONITOR
+  # ===========================================
+  failover_monitor:
+    image: postgres:16-alpine
+    container_name: failover_monitor
+    depends_on:
+      primary_db:
+        condition: service_healthy
+      hot_backup_db:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/failover/monitor.sh:/usr/local/bin/monitor.sh
+    environment:
+      - PG_PRIMARY_HOST=primary_db
+      - PG_REPLICA_HOST=hot_backup_db
+      - PG_USER=postgres
+      - PG_DB=flight_booking
+      - PG_PASSWORD=yourpassword
+    networks:
+      - flight_booking_network
+    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli; chmod +x /usr/local/bin/monitor.sh; /usr/local/bin/monitor.sh"]
+
 volumes:
   primary_db_data:
     driver: local
