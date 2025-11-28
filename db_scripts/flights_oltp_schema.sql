@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS flights (
     origin TEXT NOT NULL,
     destination TEXT NOT NULL,
     departure_time TIMESTAMPTZ NOT NULL,
-    arrival_time TIMESTAMPTZ NOT NULL
+    arrival_time TIMESTAMPTZ NOT NULL,
+    
+    CONSTRAINT unique_flight UNIQUE (flight_number, origin, destination, departure_time)
 );
 
 CREATE INDEX IF NOT EXISTS idx_flights_route ON flights(origin, destination);

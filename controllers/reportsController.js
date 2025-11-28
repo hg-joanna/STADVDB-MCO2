@@ -336,7 +336,10 @@ exports.getTopRoutes = async (req, res) => {
       FROM dim_route dr
       LEFT JOIN dim_flight df ON dr.route_key = df.route_key
       LEFT JOIN fact_bookings fb ON df.flight_key = fb.flight_key AND fb.is_cancelled = FALSE
+      WHERE dr.origin != 'Unknown' AND dr.destination != 'Unknown'
+        AND df.flight_number IS NOT NULL AND df.flight_number != 'UNK000'
       GROUP BY dr.route_code, dr.origin, dr.destination
+      HAVING COUNT(DISTINCT df.flight_key) > 0
       ORDER BY total_flights DESC, total_revenue DESC
       LIMIT 10;
     `;
