@@ -18,9 +18,11 @@ const Booking = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
   // 1. Fetch Flight List on Load
   useEffect(() => {
-    fetch('/api/flight')
+    fetch(`${API_BASE}/api/flight`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -40,7 +42,7 @@ const Booking = () => {
     setSeats([]);
     setSelectedSeats([]); 
     
-    fetch(`/api/flight/${selectedFlight}/seats`)
+    fetch(`${API_BASE}/api/flight/${selectedFlight}/seats`)
       .then(res => res.json())
       .then(data => setSeats(data))
       .catch(err => console.error("Error loading seats:", err));
@@ -79,7 +81,7 @@ const Booking = () => {
     
     // Determine if Single or Batch
     const isBatch = selectedSeats.length > 1;
-    const endpoint = isBatch ? '/api/booking/batch' : '/api/booking/single';
+    const endpoint = isBatch ? `${API_BASE}/api/booking/batch` : `${API_BASE}/api/booking/single`;
     
     const payload = isBatch 
       ? {
@@ -113,7 +115,7 @@ const Booking = () => {
       setSelectedSeats([]); // Clear selection
       
       // Refresh seats to show them as taken
-      const seatRes = await fetch(`/api/flight/${selectedFlight}/seats`);
+      const seatRes = await fetch(`${API_BASE}/api/flight/${selectedFlight}/seats`);
       const seatData = await seatRes.json();
       setSeats(seatData);
 

@@ -7,11 +7,13 @@ const Availability = () => {
   const [seats, setSeats] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
   // 1. Fetch all flights when the component mounts
   useEffect(() => {
     const fetchFlights = async () => {
       try {
-        const response = await fetch('/api/flight');
+        const response = await fetch(`${API_BASE}/api/flight`);
         if (response.ok) {
           const data = await response.json();
           setFlights(data);
@@ -29,7 +31,7 @@ const Availability = () => {
   const checkSeats = async () => {
     if (!flightId) return;
     try {
-      const response = await fetch(`/api/flight/${flightId}/seats`);
+      const response = await fetch(`${API_BASE}/api/flight/${flightId}/seats`);
       const data = await response.json();
       setSeats(data);
       setHasSearched(true);

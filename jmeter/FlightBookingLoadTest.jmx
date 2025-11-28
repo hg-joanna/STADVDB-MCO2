@@ -18,8 +18,8 @@
     </TestPlan>
     <hashTree>
       <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
-        <stringProp name="HTTPSampler.domain">localhost</stringProp>
-        <stringProp name="HTTPSampler.port">4000</stringProp>
+        <stringProp name="HTTPSampler.domain">${__P(APP_HOST,localhost)}</stringProp>
+        <stringProp name="HTTPSampler.port">${__P(APP_PORT,4000)}</stringProp>
         <stringProp name="HTTPSampler.protocol">http</stringProp>
         <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
           <collectionProp name="Arguments.arguments"/>
@@ -103,7 +103,7 @@
                 <stringProp name="Argument.value">{&#xd;
   &quot;customer_id&quot;: ${__Random(1,100)},&#xd;
   &quot;flight_id&quot;: ${__Random(1,10)},&#xd;
-  &quot;seat_number&quot;: ${SEAT_NUM},&#xd;
+  &quot;seat_number&quot;: &quot;${__Random(1,50)}${__RandomString(1,AB,)}&quot;,&#xd;
   &quot;total_price&quot;: ${__Random(2500,4500)}&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
@@ -137,7 +137,7 @@
                 <stringProp name="Argument.value">{&#xd;
   &quot;customer_id&quot;: ${__Random(1,100)},&#xd;
   &quot;flight_id&quot;: ${__Random(1,10)},&#xd;
-  &quot;seat_numbers&quot;: [${__Random(1,50)}, ${__Random(1,50)}, ${__Random(1,50)}],&#xd;
+  &quot;seat_numbers&quot;: [&quot;${__Random(1,50)}${__RandomString(1,AB,)}&quot;, &quot;${__Random(1,50)}${__RandomString(1,AB,)}&quot;, &quot;${__Random(1,50)}${__RandomString(1,AB,)}&quot;],&#xd;
   &quot;total_price&quot;: ${__Random(7500,13500)}&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>

@@ -11,6 +11,8 @@ const Reports = () => {
   const [occupancy, setOccupancy] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
   // --- DATA LOADING ---
   useEffect(() => {
     const loadData = async () => {
@@ -18,10 +20,10 @@ const Reports = () => {
       try {
         // Fetch all reports in parallel
         const [routesRes, seatsRes, segRes, occRes] = await Promise.all([
-          fetch('/api/reports/routes/top'),               // Matches reportsRoutes.js
-          fetch('/api/reports/operations/seat-utilization'), // Matches reportsRoutes.js
-          fetch('/api/reports/customers/segments'),       // Matches reportsRoutes.js
-          fetch('/api/reports/occupancy')                 // Matches reportsRoutes.js
+          fetch(`${API_BASE}/api/reports/routes/top`),               // Matches reportsRoutes.js
+          fetch(`${API_BASE}/api/reports/operations/seat-utilization`), // Matches reportsRoutes.js
+          fetch(`${API_BASE}/api/reports/customers/segments`),       // Matches reportsRoutes.js
+          fetch(`${API_BASE}/api/reports/occupancy`)                 // Matches reportsRoutes.js
         ]);
 
         // 1. TOP ROUTES

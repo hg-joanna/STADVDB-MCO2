@@ -31,6 +31,52 @@ services:
       - flight_booking_network
 
   # ===========================================
+  # FRONTEND (Vite Preview)
+  # ===========================================
+  frontend:
+    image: node:20-alpine
+    container_name: frontend_app
+    working_dir: /app
+    environment:
+      # Frontend will call the API via host-published port 4000
+      - VITE_API_BASE_URL=http://localhost:4000
+    volumes:
+      - ./frontend:/app
+    command: sh -lc "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      app_server:
+        condition: service_started
+    networks:
+      - flight_booking_network
+
+  # ===========================================
+  # JMETER (Load Testing Runner)
+  # Run with: docker compose --profile loadtest up jmeter
+  # ===========================================
+  jmeter:
+    build:
+      context: ./docker/jmeter
+    container_name: jmeter_runner
+    profiles: ["loadtest"]
+    depends_on:
+      app_server:
+        condition: service_started
+    volumes:
+      - ./jmeter:/test
+    working_dir: /test
+    networks:
+      - flight_booking_network
+    command: >
+      -t /test/FlightBookingLoadTest.jmx
+      -l /test/results/test_results.jtl
+      -e
+      -o /test/results/report
+      -JAPP_HOST=app_server
+      -JAPP_PORT=4000
+
+  # ===========================================
   # PRIMARY DATABASE (OLTP - Master)
   # ===========================================
   primary_db:
