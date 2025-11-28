@@ -52,31 +52,6 @@ services:
       - flight_booking_network
 
   # ===========================================
-  # JMETER (Load Testing Runner)
-  # Run with: docker compose --profile loadtest up jmeter
-  # ===========================================
-  jmeter:
-    build:
-      context: ./docker/jmeter
-    container_name: jmeter_runner
-    profiles: ["loadtest"]
-    depends_on:
-      app_server:
-        condition: service_started
-    volumes:
-      - ./jmeter:/test
-    working_dir: /test
-    networks:
-      - flight_booking_network
-    command: >
-      -t /test/FlightBookingLoadTest.jmx
-      -l /test/results/test_results.jtl
-      -e
-      -o /test/results/report
-      -JAPP_HOST=app_server
-      -JAPP_PORT=4000
-
-  # ===========================================
   # PRIMARY DATABASE (OLTP - Master)
   # ===========================================
   primary_db:
