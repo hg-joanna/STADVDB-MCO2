@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 
-// Controller
+
 const flightController = require('../controllers/flightController');
 
-// Routes
+
+router.get('/', flightController.getAllFlights); // NEW: Get all flights
 router.get('/:flight_id', flightController.getFlightDetails);
 router.get('/:flight_id/seats', flightController.getAvailableSeats);
 

@@ -1,48 +1,24 @@
-
--- Transactional logic for booking a single seat
-
--- Inputs: 
---  customer_id - ID of the customer making the booking
---  flight_id   -ID of the flight
---  seat_number -Seat to be booked (e.g., '1A')
---  total_price - Price of the booking
-
-BEGIN;
-
--- Lock the seat row to prevent concurrent bookings
+-- Unified Single Seat Booking
 WITH locked_seat AS (
-    SELECT seat_id, is_available
+    SELECT seat_id, 
+           CASE WHEN seat_class = 'BUSINESS' THEN 10000 ELSE 5000 END as price
     FROM seats
-    WHERE flight_id = :flight_id AND seat_number = :seat_number
+    WHERE flight_id = $2 
+      AND seat_number = $3 
+      AND is_available = TRUE
     FOR UPDATE
+),
+insert_booking AS (
+    INSERT INTO bookings (customer_id, flight_id, total_price, status, booked_at)
+    SELECT $1, $2, $4, 'CONFIRMED', NOW()
+    FROM locked_seat
+    RETURNING booking_id
+),
+insert_item AS (
+    INSERT INTO booking_items (booking_id, seat_id, price)
+    SELECT ib.booking_id, ls.seat_id, ls.price
+    FROM insert_booking ib, locked_seat ls
 )
-
--- Ensure the seat is available
-SELECT *
-FROM locked_seat
-WHERE is_available = TRUE;
-
--- Insert booking record
-INSERT INTO bookings (customer_id, flight_id, total_price, status, booked_at)
-VALUES (:customer_id, :flight_id, :total_price, 'CONFIRMED', NOW())
-RETURNING booking_id;
-
--- Insert booking item (link seat to booking)
-INSERT INTO booking_items (booking_id, seat_id)
-SELECT booking_id, seat_id
-FROM locked_seat;
-
--- Update seat availability
 UPDATE seats
 SET is_available = FALSE
-WHERE flight_id = :flight_id AND seat_number = :seat_number;
-
-COMMIT;
-
-
--- Notes:
--- 1. Replace :customer_id, :flight_id, :seat_number, :total_price
---    with parameters from your backend API.
--- 2. Use a single transaction to avoid race conditions.
--- 3. FOR UPDATE ensures no two transactions can book the same seat at the same time.
-
+WHERE seat_id IN (SELECT seat_id FROM locked_seat);

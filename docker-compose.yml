@@ -31,12 +31,48 @@ services:
       - flight_booking_network
 
   # ===========================================
+  # FRONTEND (Vite Preview)
+  # ===========================================
+  frontend:
+    image: node:20-alpine
+    container_name: frontend_app
+    working_dir: /app
+    environment:
+      # Frontend will call the API via host-published port 4000
+      - VITE_API_BASE_URL=http://localhost:4000
+    volumes:
+      - ./frontend:/app
+    command: sh -lc "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      app_server:
+        condition: service_started
+    networks:
+      - flight_booking_network
+
+  # ===========================================
   # PRIMARY DATABASE (OLTP - Master)
   # ===========================================
   primary_db:
     image: postgres:16
     container_name: primary_db
-    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10", "-c", "wal_keep_size=64"]
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "archive_mode=on"
+      - "-c"
+      - "archive_command=test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f"
+      - "-c"
+      - "archive_timeout=3600" # Archive every hour
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "wal_keep_size=64"
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -133,6 +169,30 @@ services:
       retries: 5
     networks:
       - flight_booking_network
+
+  # ===========================================
+  # FAILOVER MONITOR
+  # ===========================================
+  failover_monitor:
+    image: postgres:16-alpine
+    container_name: failover_monitor
+    depends_on:
+      primary_db:
+        condition: service_healthy
+      hot_backup_db:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/failover/monitor.sh:/usr/local/bin/monitor.sh
+    environment:
+      - PG_PRIMARY_HOST=primary_db
+      - PG_REPLICA_HOST=hot_backup_db
+      - PG_USER=postgres
+      - PG_DB=flight_booking
+      - PG_PASSWORD=yourpassword
+    networks:
+      - flight_booking_network
+    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli; chmod +x /usr/local/bin/monitor.sh; /usr/local/bin/monitor.sh"]
 
 volumes:
   primary_db_data:
