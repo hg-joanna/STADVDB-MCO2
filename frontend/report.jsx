@@ -3,7 +3,7 @@ import { BarChart3, PieChart, Users, TrendingUp, Plane, LayoutDashboard } from '
 
 const Reports = () => {
   // --- STATES ---
-  const [activeTab, setActiveTab] = useState('routes'); // Default to first tab
+  const [activeTab, setActiveTab] = useState('routes');
   
   const [routes, setRoutes] = useState([]);
   const [seatUtilization, setSeatUtilization] = useState([]);
@@ -16,34 +16,53 @@ const Reports = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // 1. FETCH YOUR EXISTING REPORT (Real Backend)
-        try {
-          const occupancyRes = await fetch('/api/report');
-          if (occupancyRes.ok) {
-            const occupancyData = await occupancyRes.json();
-            setOccupancy(occupancyData);
-          }
-        } catch (err) {
-          console.error("Failed to load existing occupancy report", err);
+        // Fetch all reports in parallel
+        const [routesRes, seatsRes, segRes, occRes] = await Promise.all([
+          fetch('/api/reports/routes/top'),               // Matches reportsRoutes.js
+          fetch('/api/reports/operations/seat-utilization'), // Matches reportsRoutes.js
+          fetch('/api/reports/customers/segments'),       // Matches reportsRoutes.js
+          fetch('/api/reports/occupancy')                 // Matches reportsRoutes.js
+        ]);
+
+        // 1. TOP ROUTES
+        if (routesRes.ok) {
+          const data = await routesRes.json();
+          setRoutes(data);
         }
 
-        // 2. MOCK DATA (Matches your Screenshot)
-        setRoutes([
-          { route_code: 'Ceb-Dav', origin: 'Cebu', destination: 'Davao', total_flights: 4 },
-          { route_code: 'Dav-Ceb', origin: 'Davao', destination: 'Cebu', total_flights: 2 },
-          { route_code: 'Ilo-Man', origin: 'Iloilo', destination: 'Manila', total_flights: 2 },
-          { route_code: 'Dav-Ilo', origin: 'Davao', destination: 'Iloilo', total_flights: 2 },
-          { route_code: 'Man-Ceb', origin: 'Manila', destination: 'Cebu', total_flights: 2 },
-        ]);
+        // 2. SEAT UTILIZATION
+        if (seatsRes.ok) {
+          const data = await seatsRes.json();
+          // Map DB columns (available_seats) to UI expected keys (available)
+          const formatted = data.map(item => ({
+            seat_class: item.seat_class,
+            total_seats: item.total_seats,
+            available: item.available_seats, // DB column -> UI key
+            booked: item.booked_seats        // DB column -> UI key
+          }));
+          setSeatUtilization(formatted);
+        }
 
-        setSeatUtilization([
-          { seat_class: 'BUSINESS', total_seats: 20, available: 20, booked: 0 },
-          { seat_class: 'ECONOMY', total_seats: 80, available: 80, booked: 0 },
-        ]);
+        // 3. CUSTOMER SEGMENTATION
+        if (segRes.ok) {
+          const data = await segRes.json();
+          // Calculate averages based on DB totals
+          const formatted = data.map(item => ({
+            customer_segment: item.customer_segment,
+            customers: item.customer_count,
+            // Calculate Avg Bookings per Customer
+            avg_bookings: item.customer_count > 0 ? (item.total_bookings / item.customer_count) : 0,
+            // Calculate LTV (Total Revenue / Customer Count)
+            avg_lifetime_value: item.customer_count > 0 ? (item.total_revenue / item.customer_count) : 0
+          }));
+          setSegmentation(formatted);
+        }
 
-        setSegmentation([
-          { customer_segment: 'One-time', customers: 101, avg_bookings: 0.00, avg_lifetime_value: 0.00 }
-        ]);
+        // 4. FLIGHT OCCUPANCY
+        if (occRes.ok) {
+          const data = await occRes.json();
+          setOccupancy(data);
+        }
 
       } catch (error) {
         console.error("Error loading dashboard data", error);
@@ -56,7 +75,7 @@ const Reports = () => {
   }, []);
 
   // Calculate Max for Graph Scaling
-  const maxFlights = Math.max(...routes.map(r => r.total_flights), 1);
+  const maxFlights = Math.max(...routes.map(r => parseInt(r.total_flights)), 1);
 
   // --- TAB DEFINITIONS ---
   const tabs = [
@@ -66,17 +85,28 @@ const Reports = () => {
     { id: 'occupancy', label: 'Flight Occupancy', icon: Plane },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <LayoutDashboard className="text-blue-600" /> Reports Dashboard
+          <LayoutDashboard className="text-blue-600" /> Analytics Dashboard
         </h2>
+        <div className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200 animate-pulse">
+          LIVE WAREHOUSE DATA
+        </div>
       </div>
 
-      {/* --- TAB NAVIGATION (SEGMENTED CONTROL) --- */}
+      {/* --- TAB NAVIGATION --- */}
       <div className="bg-slate-100 p-1.5 rounded-xl flex flex-wrap sm:flex-nowrap gap-1 shadow-inner">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -109,8 +139,8 @@ const Reports = () => {
               <TrendingUp className="text-blue-500" /> Most Frequent Routes
             </h3>
             <div className="space-y-6">
-              {routes.map((r) => (
-                <div key={r.route_code} className="group">
+              {routes.length > 0 ? routes.map((r) => (
+                <div key={r.route_code || r.origin + r.destination} className="group">
                   <div className="flex justify-between text-sm font-medium mb-2">
                     <span className="text-slate-700 text-base">{r.origin} <span className="text-slate-400 mx-2">➝</span> {r.destination}</span>
                     <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">{r.total_flights} Flights</span>
@@ -122,7 +152,9 @@ const Reports = () => {
                     ></div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-slate-500 italic">No route data available.</p>
+              )}
             </div>
           </div>
         )}
@@ -193,7 +225,7 @@ const Reports = () => {
           </div>
         )}
 
-        {/* REPORT 4: Flight Occupancy (Original) */}
+        {/* REPORT 4: Flight Occupancy */}
         {activeTab === 'occupancy' && (
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-300">
              <h3 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
@@ -212,8 +244,8 @@ const Reports = () => {
                 <tbody className="divide-y divide-slate-100">
                   {occupancy.length > 0 ? (
                     occupancy.map((r, idx) => {
-                      const total = r.booked + r.available;
-                      const percentage = total > 0 ? Math.round((r.booked / total) * 100) : 0;
+                      const total = parseInt(r.booked) + parseInt(r.available);
+                      const percentage = total > 0 ? Math.round((parseInt(r.booked) / total) * 100) : 0;
                       
                       return (
                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
