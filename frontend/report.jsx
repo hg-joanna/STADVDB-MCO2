@@ -27,7 +27,16 @@ const Reports = () => {
         // 1. TOP ROUTES
         if (routesRes.ok) {
           const data = await routesRes.json();
-          setRoutes(data);
+          // Convert string numbers to actual numbers
+          const formatted = data.map(item => ({
+            route_code: item.route_code,
+            origin: item.origin,
+            destination: item.destination,
+            total_flights: parseInt(item.total_flights) || 0,
+            total_bookings: parseInt(item.total_bookings) || 0,
+            total_revenue: parseFloat(item.total_revenue) || 0
+          }));
+          setRoutes(formatted);
         }
 
         // 2. SEAT UTILIZATION
@@ -75,7 +84,7 @@ const Reports = () => {
   }, []);
 
   // Calculate Max for Graph Scaling
-  const maxFlights = Math.max(...routes.map(r => parseInt(r.total_flights)), 1);
+  const maxFlights = Math.max(...routes.map(r => r.total_flights), 1);
 
   // --- TAB DEFINITIONS ---
   const tabs = [
